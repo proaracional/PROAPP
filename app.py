@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 import gspread
 import unicodedata
+import streamlit_authenticator as stauth
 
 from pathlib import Path
 from urllib.parse import quote
@@ -140,6 +141,55 @@ st.set_page_config(
     page_title="PROA Racional",
     page_icon="🦠",
     layout="wide"
+)
+
+# ==================================================
+# AUTENTICACION
+# ==================================================
+
+nombres = st.secrets["auth"]["names"]
+usuarios = st.secrets["auth"]["usernames"]
+claves = st.secrets["auth"]["passwords"]
+
+credenciales = {
+    "usernames": {
+        usuario: {
+            "name": nombre,
+            "password": password
+        }
+        for usuario, nombre, password in zip(
+            usuarios,
+            nombres,
+            claves
+        )
+    }
+}
+
+authenticator = stauth.Authenticate(
+    credenciales,
+    "proa_cookie",
+    "proa_signature_key",
+    cookie_expiry_days=1
+)
+
+try:
+    authenticator.login()
+except Exception as e:
+    st.error(str(e))
+    st.stop()
+
+if st.session_state.get("authentication_status") is False:
+    st.error("Usuario o contraseña incorrectos")
+    st.stop()
+
+if st.session_state.get("authentication_status") is None:
+    st.warning("Ingrese usuario y contraseña")
+    st.stop()
+
+authenticator.logout("Cerrar sesión", "sidebar")
+
+st.sidebar.success(
+    f"Usuario: {st.session_state['name']}"
 )
 
 # ==================================================
